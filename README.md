@@ -17,7 +17,7 @@ from fast_match import fast_match
 image = cv2.imread("image.png")
 template = cv2.imread("template.png")
 
-corners = fast_match.FastMatch(epsilon=0.15, delta=0.85, photometric_invariance=false, min_scale=0.5, max_scale=2).run(image, template)
+corners = fast_match.FastMatch(epsilon=0.15, delta=0.85, photometric_invariance=False, min_scale=0.5, max_scale=2).run(image, template)
 ```
 
 ## Contributing
