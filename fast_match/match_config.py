@@ -25,3 +25,13 @@ class MatchConfig(object):
         A[1:2, 1:2] = R1*S*R2
 
         return A
+
+    def as_matrix(self):
+        return np.matrix([self.translate_x, self.translate_y, self.rotate_2, self.scale_x, self.scale_y, self.rotate_1])
+
+    def from_matrix(self, configs):
+        result = []
+        for i in range(configs.rows):
+            result.append(configs[i][:5])
+
+        return result
