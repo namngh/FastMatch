@@ -1,24 +1,29 @@
 import math
 
-from fast_match import match_config
+from fast_match import match_config, utils
 
 
 class MatchNet(object):
     def __init__(self, **kwargs):
-        self.bound_translate_x = [kwargs.get(
-            "min_translate_x"), kwargs.get("max_translate_x")]
-        self.bound_translate_y = [kwargs.get(
-            "min_translate_y"), kwargs.get("max_translate_y")]
-        self.bound_rotate = [kwargs.get(
-            "min_rotate"), kwargs.get("max_rotate")]
+        self.bound_translate_x = [
+            kwargs.get("min_translate_x"),
+            kwargs.get("max_translate_x"),
+        ]
+        self.bound_translate_y = [
+            kwargs.get("min_translate_y"),
+            kwargs.get("max_translate_y"),
+        ]
+        self.bound_rotate = [kwargs.get("min_rotate"), kwargs.get("max_rotate")]
         self.bound_scale = [kwargs.get("min_scale"), kwargs.get("max_scale")]
 
-        self.steps_translate_x = kwargs.get(
-            "delta") * kwargs.get("width") / math.sprt(2)
-        self.steps_translate_y = kwargs.get(
-            "delta") * kwargs.get("height") / math.sprt(2)
-        self.steps_rotate = kwargs.get("delta") * math.sprt(2)
-        self.steps_scale = kwargs.get("delta") / math.sprt(2)
+        self.steps_translate_x = (
+            kwargs.get("delta") * kwargs.get("width") / math.sqrt(2)
+        )
+        self.steps_translate_y = (
+            kwargs.get("delta") * kwargs.get("height") / math.sqrt(2)
+        )
+        self.steps_rotate = kwargs.get("delta") * math.sqrt(2)
+        self.steps_scale = kwargs.get("delta") / math.sqrt(2)
 
         self.tx_steps = self.generate_x_translation_steps()
         self.ty_steps = self.generate_y_translation_steps()
@@ -27,29 +32,39 @@ class MatchNet(object):
 
     def generate_x_translation_steps(self):
         tx_steps = []
-        for x in range(self.bound_translate_x[0], self.bound_translate_x[1], self.steps_translate_x):
+        for x in utils.range_float(
+            self.bound_translate_x[0], self.bound_translate_x[1], self.steps_translate_x
+        ):
             tx_steps.append(x)
 
-        if self.bound_translate_x[1] - tx_steps[len(tx_steps) - 1] > 0.5 * self.steps_translate_x:
-            tx_steps.append(
-                tx_steps[len(tx_steps) - 1 - 1] + self.steps_translate_x)
+        if (
+            self.bound_translate_x[1] - tx_steps[len(tx_steps) - 1]
+            > 0.5 * self.steps_translate_x
+        ):
+            tx_steps.append(tx_steps[len(tx_steps) - 1 - 1] + self.steps_translate_x)
 
         return tx_steps
 
     def generate_y_translation_steps(self):
         ty_steps = []
-        for y in range(self.bound_translate_y[0], self.bound_translate_y[1], self.steps_translate_y):
+        for y in utils.range_float(
+            self.bound_translate_y[0], self.bound_translate_y[1], self.steps_translate_y
+        ):
             ty_steps.append(y)
 
-        if self.bound_translate_y[1] - ty_steps[len(ty_steps) - 1] > 0.5 * self.steps_translate_y:
-            ty_steps.append(
-                ty_steps[len(ty_steps) - 1 - 1] + self.steps_translate_y)
+        if (
+            self.bound_translate_y[1] - ty_steps[len(ty_steps) - 1]
+            > 0.5 * self.steps_translate_y
+        ):
+            ty_steps.append(ty_steps[len(ty_steps) - 1 - 1] + self.steps_translate_y)
 
         return ty_steps
 
     def generate_rotation_steps(self):
         r_steps = []
-        for r in range(self.bound_rotate[0], self.bound_rotate[1], self.steps_rotate):
+        for r in utils.range_float(
+            self.bound_rotate[0], self.bound_rotate[1], self.steps_rotate
+        ):
             r_steps.append(r)
 
         if self.bound_rotate[1] - r_steps[len(r_steps) - 1] > 0.5 * self.steps_rotate:
@@ -59,7 +74,9 @@ class MatchNet(object):
 
     def generate_scale_steps(self):
         s_steps = []
-        for s in range(self.bound_scale[0], self.bound_scale[1], self.steps_scale):
+        for s in utils.range_float(
+            self.bound_scale[0], self.bound_scale[1], self.steps_scale
+        ):
             s_steps.append(s)
 
         if self.bound_scale[1] - s_steps[len(s_steps) - 1] > 0.5 * self.steps_scale:
@@ -67,16 +84,31 @@ class MatchNet(object):
 
         return s_steps
 
+    def multi(self, factor):
+        self.steps_translate_x *= factor
+        self.steps_translate_y *= factor
+        self.steps_rotate *= factor
+        self.steps_scale *= factor
+
     def create_list_configs(self):
-        tx_steps_len = len(self.tx_steps),
-        ty_steps_len = len(self.ty_steps),
-        s_steps_len = len(self.s_steps),
-        r1_steps_len = len(self.r_steps),
+        tx_steps_len = len(self.tx_steps)
+        ty_steps_len = len(self.ty_steps)
+        s_steps_len = len(self.s_steps)
+        r1_steps_len = len(self.r_steps)
         r2_steps_len = r1_steps_len
 
-        if math.abs((self.bound_rotate[2] - self.bound_rotate[1]) - (2 * math.pi)) < 0.1:
-            r2_steps_len = len(list(
-                filter(lambda r:  r < (-math.pi / 2 + self.steps_rotate / 2), self.r_steps)))
+        if (
+            math.fabs((self.bound_rotate[1] - self.bound_rotate[0]) - (2 * math.pi))
+            < 0.1
+        ):
+            r2_steps_len = len(
+                list(
+                    filter(
+                        lambda r: r < (-math.pi / 2 + self.steps_rotate / 2),
+                        self.r_steps,
+                    )
+                )
+            )
 
         configs = []
 
@@ -98,7 +130,15 @@ class MatchNet(object):
                             for sy_index in range(s_steps_len):
                                 sy = self.s_steps[sy_index]
 
-                                configs.append(match_config.MatchConfig(
-                                    translate_x=tx, translate_y=ty, scale_x=sx, scale_y=sy, rotate_1=r1, rotate_2=r2))
+                                configs.append(
+                                    match_config.MatchConfig(
+                                        translate_x=tx,
+                                        translate_y=ty,
+                                        scale_x=sx,
+                                        scale_y=sy,
+                                        rotate_1=r1,
+                                        rotate_2=r2,
+                                    )
+                                )
 
         return configs

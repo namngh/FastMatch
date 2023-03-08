@@ -4,7 +4,9 @@ import math
 
 
 def generate_rotate_matrix(rotate):
-    return np.matrix([[math.cos(rotate), -math.sin(rotate)], [math.sin(rotate), math.cos(rotate)]])
+    return np.matrix(
+        [[math.cos(rotate), -math.sin(rotate)], [math.sin(rotate), math.cos(rotate)]]
+    )
 
 
 def preprocess_image(image):
@@ -22,4 +24,19 @@ def preprocess_image(image):
 
 
 def validate_affine_corner(point, top_left, bottom_right):
-    return point[0] > top_left[0] and point[1] > top_left[1] and point[0] < bottom_right[0] and point[1] < bottom_right[1]
+    return (
+        point[0, 0] > top_left[0]
+        and point[0, 1] > top_left[1]
+        and point[0, 0] < bottom_right[0]
+        and point[0, 1] < bottom_right[1]
+    )
+
+
+def range_float(start, end, step):
+    current = start
+    arr = [current]
+    while current < end:
+        current += step
+        arr.append(current)
+
+    return arr
